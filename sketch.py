@@ -1,25 +1,47 @@
 import cv2
+import tkinter as tk
+from tkinter import filedialog, messagebox
+from PIL import Image, ImageTk
+import os
 
-# Load the image
-image = cv2.imread('thisen.png')
+def convert_to_sketch(img_path):
+    image = cv2.imread(img_path)
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    inverted_gray = 255 - gray_image
+    blurred = cv2.GaussianBlur(inverted_gray, (21, 21), 0)
+    inverted_blur = 255 - blurred
+    sketch = cv2.divide(gray_image, inverted_blur, scale=256.0)
+    return sketch
 
-# Convert to gray scale
-gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+def select_image():
+    file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.jpg *.png *.jpeg")])
+    if file_path:
+        sketch = convert_to_sketch(file_path)
+        output_path = os.path.splitext(file_path)[0] + "_sketch.jpg"
+        cv2.imwrite(output_path, sketch)
+        messagebox.showinfo("Success", f"Pencil sketch saved as:\n{output_path}")
+        show_result(output_path)
 
-# Invert the grayscale image
-inverted_gray = 255 - gray_image
+def show_result(image_path):
+    img = Image.open(image_path)
+    img = img.resize((300, 300))  # Resize for display
+    img_tk = ImageTk.PhotoImage(img)
+    result_label.config(image=img_tk)
+    result_label.image = img_tk
 
-# Blur the inverted image
-blurred = cv2.GaussianBlur(inverted_gray, (21, 21), 0)
+# Set up the GUI
+root = tk.Tk()
+root.title("Pencil Sketch Converter")
+root.geometry("400x450")
+root.resizable(False, False)
 
-# Invert the blurred image
-inverted_blur = 255 - blurred
+title_label = tk.Label(root, text="Pencil Sketch Converter", font=("Arial", 16))
+title_label.pack(pady=10)
 
-# Create the pencil sketch
-pencil_sketch = cv2.divide(gray_image, inverted_blur, scale=256.0)
+btn = tk.Button(root, text="Select Image", command=select_image, font=("Arial", 12))
+btn.pack(pady=10)
 
-# Save and show the result
-cv2.imwrite('pencil_sketch.jpg', pencil_sketch)
-cv2.imshow('Pencil Sketch', pencil_sketch)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+result_label = tk.Label(root)
+result_label.pack(pady=10)
+
+root.mainloop()
